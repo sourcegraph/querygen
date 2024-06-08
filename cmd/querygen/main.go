@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/format"
@@ -14,17 +15,16 @@ import (
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 
+	"github.com/charmbracelet/log"
 	"github.com/sourcegraph/conc/pool"
-	"github.com/sourcegraph/log"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 
 	"github.com/sourcegraph/querygen/internal"
 )
 
 func main() {
-	liblog := log.Init(log.Resource{Name: "querygen", InstanceID: "none"})
-	defer liblog.Sync()
-
+	defaultLevel := globalLogLevel
+	flag.StringVar(&globalLogLevel, "log-level", defaultLevel, "Log level: one of debug, info, warn, error, or fatal")
 	// Checking mode vs modifying mode
 	multichecker.Main(newAnalyzer())
 }
@@ -51,16 +51,36 @@ type queryGenFileData struct {
 	wanted []internal.GoStruct
 }
 
+var globalLogLevel string = "warn"
+
+func initLogger() (*log.Logger, error) {
+	level, err := log.ParseLevel(globalLogLevel)
+	if err != nil {
+		return nil, err
+	}
+	styles := log.DefaultStyles()
+	for lvl, value := range styles.Levels {
+		styles.Levels[lvl] = value.MaxWidth(8)
+	}
+	logger := log.NewWithOptions(os.Stderr, log.Options{ReportTimestamp: true, Level: level})
+	logger.SetTimeFormat("15:04:05")
+	logger.SetStyles(styles)
+	return logger, nil
+}
+
 func run(pass *analysis.Pass) (any, error) {
-	logger := log.Scoped("querygen")
+	logger, err := initLogger()
+	if err != nil {
+		return nil, err
+	}
 
 	queryGenFiles, results := gatherQueryGenFileData(logger, pass)
 	logger.Debug("gathered query file data",
-		log.Int("numQueryGenFiles", len(queryGenFiles)),
-		log.Int("numNonQueryGenFiles", len(results)))
+		"numQueryGenFiles", len(queryGenFiles),
+		"numNonQueryGenFiles", len(results))
 
 	for _, result := range results {
-		logger.Debug("got result", log.String("path", result.file.Name()), log.Int("wanted", len(result.wanted)))
+		logger.Debug("got result", "path", result.file.Name(), "wanted", len(result.wanted))
 		if len(result.wanted) == 0 {
 			continue
 		}
@@ -77,14 +97,14 @@ func run(pass *analysis.Pass) (any, error) {
 			queryGenFiles[queryGenFilename] = fileData
 		}
 	}
-	logger.Debug("updated query file data", log.Int("numQueryGenFiles", len(queryGenFiles)))
+	logger.Debug("updated query file data", "numQueryGenFiles", len(queryGenFiles))
 
-	updateQueryGenFiles(logger.Scoped("io"), pass.Pkg, pass.Fset, queryGenFiles)
+	updateQueryGenFiles(logger, pass.Pkg, pass.Fset, queryGenFiles)
 
 	return nil, nil
 }
 
-func updateQueryGenFiles(logger log.Logger, pkg *types.Package, fset *token.FileSet, queryGenFiles map[string]*queryGenFileData) {
+func updateQueryGenFiles(logger *log.Logger, pkg *types.Package, fset *token.FileSet, queryGenFiles map[string]*queryGenFileData) {
 	shouldImportInterpolate :=
 		pkg.Path() != "github.com/sourcegraph/querygen/lib/interpolate" &&
 			pkg.Path() != "github.com/sourcegraph/querygen/lib/interpolate.test"
@@ -99,12 +119,12 @@ func updateQueryGenFiles(logger log.Logger, pkg *types.Package, fset *token.File
 	//	| Present | 0           | Present        | Remove file                |
 	//	| Absent  | n/a         | Present        | Remove file                |
 	for path, fileData := range queryGenFiles {
-		logger := logger.With(log.String("path", path))
+		logger := logger.With("path", path)
 		// Handle the creation case
 		if fileData.file == nil {
 			logger.Debug("creating new file")
 			if err := fileData.createNewFile(pkg, path, shouldImportInterpolate); err != nil {
-				logger.Error("failed to write generated structs", log.Error(err))
+				logger.Error("failed to write generated structs", "err", err)
 			}
 			continue
 		}
@@ -119,12 +139,12 @@ func updateQueryGenFiles(logger log.Logger, pkg *types.Package, fset *token.File
 		// Handle the update case
 		logger.Debug("updating file")
 		if err := fileData.updateFile(fset, shouldImportInterpolate); err != nil {
-			logger.Warn("failed to update file", log.Error(err))
+			logger.Warn("failed to update file", "err", err)
 		}
 	}
 }
 
-func gatherQueryGenFileData(logger log.Logger, pass *analysis.Pass) (map[string]*queryGenFileData, []analysisResult) {
+func gatherQueryGenFileData(logger *log.Logger, pass *analysis.Pass) (map[string]*queryGenFileData, []analysisResult) {
 	p := pool.NewWithResults[analysisResult]()
 	queryGenFiles := map[string]*queryGenFileData{}
 	nonGenFilePaths := internal.Set[string]{}
@@ -133,7 +153,7 @@ func gatherQueryGenFileData(logger log.Logger, pass *analysis.Pass) (map[string]
 		if file == nil { // malformed code/bug
 			continue
 		}
-		logger := logger.With(log.String("path", file.Name()))
+		logger := logger.With("path", file.Name())
 		if isQueryGenFilePath(file.Name()) {
 			logger.Debug("not visiting file")
 			queryGenFiles[file.Name()] = &queryGenFileData{file, astFile, nil}

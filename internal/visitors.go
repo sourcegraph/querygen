@@ -6,7 +6,7 @@ import (
 	"go/token"
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/sourcegraph/log"
+	"github.com/charmbracelet/log"
 )
 
 type QueryGenVisitor struct {
@@ -16,7 +16,7 @@ type QueryGenVisitor struct {
 	substitutionRegex   *regexp.Regexp
 	queryConstNameRegex *regexp.Regexp
 	structFactory       StructFactory
-	logger              log.Logger
+	logger              *log.Logger
 
 	// ParamStructs is the list of GoStructs generated for a file.
 	ParamStructs []GoStruct
@@ -24,7 +24,7 @@ type QueryGenVisitor struct {
 
 var _ ast.Visitor = &QueryGenVisitor{}
 
-func NewQueryGenVisitor(logger log.Logger, pass *analysis.Pass) *QueryGenVisitor {
+func NewQueryGenVisitor(logger *log.Logger, pass *analysis.Pass) *QueryGenVisitor {
 	return &QueryGenVisitor{
 		pass:                pass,
 		foldingState:        Set[string]{},
@@ -80,17 +80,17 @@ func (q *QueryGenVisitor) Visit(node ast.Node) ast.Visitor {
 					continue
 				}
 				queryVarName := ident.Name
-				logger := q.logger.With(log.String("const", queryVarName))
+				logger := q.logger.With("const", queryVarName)
 				expr := valSpec.Values[i]
 				func() {
 					q.foldingState.Add(queryVarName)
 					defer q.foldingState.Remove(queryVarName)
 					logger.Debug("trying to fold Query string")
 					if foldedString, ok := q.tryFoldString(expr); ok {
-						logger.Debug("constant-folded Query string", log.String("foldedString", foldedString))
+						logger.Debug("constant-folded Query string", "foldedString", foldedString)
 						goStruct, err := q.structFactory.NewGoStruct(q.substitutionRegex, ident, foldedString)
 						if err != nil {
-							logger.Error("failed to create struct from query string", log.Error(err))
+							logger.Error("failed to create struct from query string", "err", err)
 							return
 						}
 						if goStruct != nil {
@@ -162,7 +162,7 @@ func (q *QueryGenVisitor) tryFoldString(expr ast.Expr) (string, bool) {
 		ident := expr.(*ast.Ident)
 
 		if q.foldingState.Has(ident.Name) {
-			q.logger.Warn("cyclic dependency in constant expression", log.String("ident", ident.Name))
+			q.logger.Warn("cyclic dependency in constant expression", "ident", ident.Name)
 			return "", false
 		}
 		q.foldingState.Add(ident.Name)
