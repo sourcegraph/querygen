@@ -38,11 +38,19 @@ func TestSubstitutionRegex(t *testing.T) {
 			},
 		})},
 		{
-			input: `SELECT * from T WHERE X = {{x: int: %f}}`, builders: autogold.Expect([]GoStructFieldBuilder{{
-				Name:                    "x",
-				TypeName:                "int",
-				ExplicitFormatSpecifier: "%f",
-			}}),
+			input: `SELECT * from T WHERE X = {{x: *int: %s}} AND Y = {{uploadedParts: any: %s}}`, builders: autogold.Expect([]GoStructFieldBuilder{
+				{
+					Name:                    "x",
+					TypeName:                "*int",
+					ExplicitFormatSpecifier: "%s",
+				},
+				{
+					Name:                    "uploadedParts",
+					TypeName:                "any",
+					ExplicitFormatSpecifier: "%s",
+					Index:                   1,
+				},
+			}),
 		},
 	}
 	for _, tc := range testCases {

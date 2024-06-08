@@ -16,9 +16,10 @@ import (
 // formatSpec must not contain positional arguments (i.e. %[0]f is not OK)
 var SubstitutionRegex *regexp.Regexp = func() *regexp.Regexp {
 	rawIdentifier := `[a-zA-Z_][a-zA-Z0-9_]*`
-	qualifiedIdentifier := fmt.Sprintf(`(%s\.)?%s`, rawIdentifier, rawIdentifier)
+	// Q: Should we simplify this to parse everything?
+	typeName := fmt.Sprintf(`(\*?%s\.)?[a-zA-Z0-9_*\[\] ]+`, rawIdentifier)
 	return regexp.MustCompile(fmt.Sprintf(
-		`{{\s*(%s)\s*:\s*(%s)\s*(:\s*(%%(.+))\s*)?}}`, rawIdentifier, qualifiedIdentifier))
+		`{{\s*(%s)\s*:\s*(%s)\s*(:\s*(%%(.+?))\s*)?}}`, rawIdentifier, typeName))
 }()
 
 // GoStructFieldBuilder maps N-1 to GoStructField, as the same field
