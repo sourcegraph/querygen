@@ -31,7 +31,13 @@ LIMIT 1
 `
 ```
 
-Run the `querygen` CLI on the package.
+Get the [`querygen` CLI](https://github.com/sourcegraph/querygen/releases)
+and run it on the package.
+
+```bash
+go install github.com/sourcegraph/querygen/cmd/querygen@latest
+querygen ./...
+```
 
 This will generate a file next to the original file:
 
