@@ -1,0 +1,33 @@
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        go-version: ['1.22.2']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v3.3.1
+        with:
+          version: latest
+          args: --timeout 5m
+
+      - name: Test
+        run: |
+          ./scripts/test-all.sh
+          git diff --exit-code
