@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  goreleaser:
+  goreleaser-check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,4 +22,4 @@ jobs:
           distribution: goreleaser
           version: '~> v2'
           workdir: 'cmd/querygen'
-          args: check
+          args: build --snapshot
