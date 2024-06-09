@@ -75,9 +75,36 @@ function.
 
 For more complex usage, see [Reference.md](docs/Reference.md).
 
+## Motivation and Comparison
+
+The Sourcegraph monorepo largely uses the [`sqlf`](github.com/keegancsmith/sqlf) library
+for constructing SQL queries. `querygen` sits on top of `sqlf` to enable:
+
+1. Incrementally improving the readability of existing queries
+2. Add compile-time checking for names and number of arguments
+
+without having to switch to an alternate SQL driver.
+
+| Tool/Library                      |    `sqlf`    |  `querygen`   |  `pgx`   |    `sqlc`     |
+|-----------------------------------|:------------:|:-------------:|:--------:|:-------------:|
+| Operation                         |   Run-time   | ~Compile-time | Run-time | ~Compile-time |
+| Named parameters in query syntax  |      ❌       |       ✅       |    ✅     |       ✅       |
+| Static binding var count checking |      ❌       |       ✅       |    ❌     |       ✅       |
+| Arbitrary dynamic query fragments |      ✅       |       ✅       |    ✅     |       ❌       |
+| Static query validation           |      ❌       |       ❌       |    ❌     |       ✅       |
+| Statically checked row scanning   |      ❌       |       ❌       |    ❌     |       ✅       |
+
+We could probably use `sqlc` for common cases,
+but the Sourcegraph codebase has some [complex dynamically assembled queries](https://sourcegraph.com/github.com/sourcegraph/sourcegraph@d288874197bed9c219c20a01cd7786e1d2aa6e11/-/blob/internal/batches/store/batch_changes.go?L612-697)
+which cannot be statically analyzed by `sqlc`.
+So those would need to be either re-written to fit into
+`sqlc`'s model, or you'd need some sophisticated
+[abstract interpretation](https://en.wikipedia.org/wiki/Abstract_interpretation)
+to extract all possible queries and analyze them individually.
+
 ## Contributing
 
 See [Development.md](docs/Development.md) for build instructions etc.
 
 At the moment, this is made primarily for Sourcegraph's internal use.
-So any form of support will be on a best-effort basis.
+Usage outside Sourcegraph is not supported.
