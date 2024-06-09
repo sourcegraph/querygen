@@ -89,6 +89,7 @@ without having to switch to an alternate SQL driver.
 |-----------------------------------|:------------:|:-------------:|:--------:|:-------------:|
 | Operation                         |   Run-time   | ~Compile-time | Run-time | ~Compile-time |
 | Named parameters in query syntax  |      ❌       |       ✅       |    ✅     |       ✅       |
+| Static parameter name checking    |      ❌       |       ✅       |    ❌     |       ✅       | 
 | Static binding var count checking |      ❌       |       ✅       |    ❌     |       ✅       |
 | Arbitrary dynamic query fragments |      ✅       |       ✅       |    ✅     |       ❌       |
 | Static query validation           |      ❌       |       ❌       |    ❌     |       ✅       |
