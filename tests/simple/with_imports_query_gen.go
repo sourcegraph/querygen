@@ -13,10 +13,6 @@ type myQueryVars struct {
 
 var _ interpolate.QueryVars = &myQueryVars{}
 
-func (qp *myQueryVars) FormatSpecifiers() []string {
-	return []string{"%s"}
-}
-
 func (qp *myQueryVars) FormatArgs() []any {
 	return []any{qp.abc}
 }

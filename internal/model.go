@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
-	"go/token"
-	"go/types"
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/grafana/regexp"
@@ -41,14 +39,9 @@ type GoStruct struct {
 }
 
 type GoStructField struct {
-	Name          string
-	Type          TypeName
-	Substitutions []SubstitutionMetadata
-}
-
-type SubstitutionMetadata struct {
-	index      int
-	formatSpec string
+	Name    string
+	Type    TypeName
+	Indexes []int
 }
 
 type TypeName struct {
@@ -100,23 +93,10 @@ func (b *goStructBuilder) createNewField(fieldBuilder GoStructFieldBuilder) (*Go
 	if fieldBuilder.TypeName == "_" {
 		return nil, errors.Newf("first interpolation of %v must specify type", fieldBuilder.Name)
 	}
-	formatSpec := fieldBuilder.ExplicitFormatSpecifier
-	if formatSpec == "" {
-		spec, err := determineFormatSpecifier(b.pass.Pkg.Scope(), fieldBuilder.Name, fieldBuilder.TypeName)
-		if err != nil {
-			return nil, err
-		}
-		formatSpec = spec
-	}
 	return &GoStructField{
 		fieldBuilder.Name,
 		TypeName{fieldBuilder.TypeName},
-		[]SubstitutionMetadata{
-			{
-				index:      fieldBuilder.Index,
-				formatSpec: formatSpec,
-			},
-		},
+		[]int{fieldBuilder.Index},
 	}, nil
 }
 
@@ -125,51 +105,8 @@ func (b *goStructBuilder) mergeFieldData(field *GoStructField, fieldBuilder GoSt
 		return errors.Newf("field %v used with distinct types: %v and %v",
 			field.Name, field.Type.Name, fieldBuilder.TypeName)
 	}
-	formatSpec := fieldBuilder.ExplicitFormatSpecifier
-	if formatSpec == "" {
-		spec, err := determineFormatSpecifier(b.pass.Pkg.Scope(), field.Name, field.Type.Name)
-		if err != nil {
-			return err
-		}
-		formatSpec = spec
-	}
-	field.Substitutions = append(field.Substitutions, SubstitutionMetadata{
-		index:      fieldBuilder.Index,
-		formatSpec: formatSpec,
-	})
+	field.Indexes = append(field.Indexes, fieldBuilder.Index)
 	return nil
-}
-
-func determineFormatSpecifier(scope *types.Scope, varName string, typeName string) (string, error) {
-	_, obj := scope.LookupParent(typeName, token.NoPos)
-	if obj == nil {
-		return "", errors.Newf("failed name lookup for type %v of interpolation variable %v", typeName, varName)
-	}
-	if _, ok := obj.(*types.TypeName); !ok {
-		return "", errors.Newf("expected named type after first ':' but found %v", obj.String())
-	}
-	if formatSpecFromType, ok := determineFormatSpecifierFromType(obj.Type()); ok {
-		return formatSpecFromType, nil
-	}
-	return "", &cannotAutomaticallyFormatError{typeName}
-}
-
-func determineFormatSpecifierFromType(typ types.Type) (string, bool) {
-	// TODO: Is this only going to handle the 1-level deep case?
-	basicType, ok := typ.Underlying().(*types.Basic)
-	if !ok {
-		return "", false
-	}
-	// See TestSqlf; it looks like the format specifiers are basically ignored :O
-	switch basicType.Kind() {
-	case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
-		types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64:
-		return "%d", true
-	case types.String:
-		return "%s", true
-	default:
-	}
-	return "", false
 }
 
 func WriteStructs(wanted []GoStruct, buf *bytes.Buffer, shouldImportInterpolate bool) {
@@ -186,33 +123,17 @@ func WriteStructs(wanted []GoStruct, buf *bytes.Buffer, shouldImportInterpolate 
 
 		buf.WriteString(fmt.Sprintf("var _ %sQueryVars = &%s{}\n\n", packagePrefix, goStruct.TypeName))
 
-		type perIndexData = struct {
-			fieldName  string
-			formatSpec string
-		}
-		indexToData := map[int]perIndexData{}
+		fieldNameForIndex := map[int]string{}
 		for _, field := range goStruct.Fields {
-			for _, subst := range field.Substitutions {
-				indexToData[subst.index] = perIndexData{fieldName: field.Name, formatSpec: subst.formatSpec}
+			for _, index := range field.Indexes {
+				fieldNameForIndex[index] = field.Name
 			}
 		}
 
-		buf.WriteString(fmt.Sprintf("func (qp *%s) FormatSpecifiers() []string {\n", goStruct.TypeName))
-		buf.WriteString("\treturn []string{")
-		// This might seem a bit silly. The Postgres binding syntax allows $1, $2 etc.
-		// So why duplicate the formatters & arguments? Because some databases like
-		// SQLite and MySQL don't seem to support similar syntax.
-		// https://github.com/keegancsmith/sqlf/blob/master/bindvar.go#L19-L20
-		for i := 0; i < len(indexToData); i++ {
-			buf.WriteString(fmt.Sprintf("\"%s\",", indexToData[i].formatSpec))
-		}
-		buf.WriteString("}\n")
-		buf.WriteString("}\n\n")
-
 		buf.WriteString(fmt.Sprintf("func (qp *%s) FormatArgs() []any {\n", goStruct.TypeName))
 		buf.WriteString("\treturn []any{")
-		for i := 0; i < len(indexToData); i++ {
-			buf.WriteString(fmt.Sprintf("qp.%s,", indexToData[i].fieldName))
+		for i := 0; i < len(fieldNameForIndex); i++ {
+			buf.WriteString(fmt.Sprintf("qp.%s,", fieldNameForIndex[i]))
 		}
 		buf.WriteString("}\n")
 		if j == len(wanted)-1 {

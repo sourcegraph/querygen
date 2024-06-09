@@ -2,27 +2,14 @@
 
 ## Interpolation syntax
 
-The most general interpolation syntax is:
-
-```
-{{ident : type : formatSpecifier}}
-```
-
-- `ident` will be the name of the field in the associated generated struct.
-- `type` will be the type of the field
-- `formatSpecifier` specifies how the value will be formatted.
-  So the usual Go syntax with `%d` etc.
-
-`formatSpecifier` can be omitted if `type` is one of:
-- An integral type (`int`, `int32`, `uint8` etc.)
-- `string`
-- A type which has one of the above types as the underlying type.
-
-The simpler syntax is:
+The typical interpolation syntax is:
 
 ```
 {{ident : type}}
 ```
+
+- `ident` will be the name of the field in the associated generated struct.
+- `type` will be the type of the field
 
 If using the same parameter multiple times, you may use `_`
 from the second occurrence onwards, instead of repeating the type name.

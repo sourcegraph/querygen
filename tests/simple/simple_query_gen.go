@@ -12,10 +12,6 @@ type selectAllQueryVars struct {
 
 var _ interpolate.QueryVars = &selectAllQueryVars{}
 
-func (qp *selectAllQueryVars) FormatSpecifiers() []string {
-	return []string{"%s"}
-}
-
 func (qp *selectAllQueryVars) FormatArgs() []any {
 	return []any{qp.tableName}
 }
