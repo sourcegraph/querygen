@@ -77,7 +77,7 @@ func (b *goStructBuilder) tryBuild() *GoStruct {
 	for it := b.fieldMap.Oldest(); it != nil; it = it.Next() {
 		fields = append(fields, *it.Value)
 	}
-	return &GoStruct{b.queryConst.Name + "Params", fields}
+	return &GoStruct{b.queryConst.Name + "Vars", fields}
 }
 
 func (b *goStructBuilder) AddInterpolationMatch(index int, matches []string) error {
@@ -184,7 +184,7 @@ func WriteStructs(wanted []GoStruct, buf *bytes.Buffer, shouldImportInterpolate 
 		}
 		buf.WriteString("}\n\n")
 
-		buf.WriteString(fmt.Sprintf("var _ %sQueryParams = &%s{}\n\n", packagePrefix, goStruct.TypeName))
+		buf.WriteString(fmt.Sprintf("var _ %sQueryVars = &%s{}\n\n", packagePrefix, goStruct.TypeName))
 
 		type perIndexData = struct {
 			fieldName  string

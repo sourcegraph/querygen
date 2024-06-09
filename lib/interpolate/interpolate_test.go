@@ -32,7 +32,7 @@ var _ = bestChoiceCakeQuery
 func TestDo(t *testing.T) {
 	type TestCase struct {
 		query      string
-		input      QueryParams
+		input      QueryVars
 		expect     autogold.Value
 		expectArgs autogold.Value
 	}
@@ -40,7 +40,7 @@ func TestDo(t *testing.T) {
 	testCases := []TestCase{
 		{
 			query:      myArgsQuery,
-			input:      &myArgsQueryParams{TableName: "T", WantId: 1},
+			input:      &myArgsQueryVars{TableName: "T", WantId: 1},
 			expect:     autogold.Expect("SELECT * from $1 WHERE id = $2"),
 			expectArgs: autogold.Expect([]interface{}{"T", 1}),
 		},

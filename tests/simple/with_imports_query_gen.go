@@ -7,16 +7,16 @@ import (
 	_ "math" // Added by hand
 )
 
-type myQueryParams struct {
+type myQueryVars struct {
 	abc string
 }
 
-var _ interpolate.QueryParams = &myQueryParams{}
+var _ interpolate.QueryVars = &myQueryVars{}
 
-func (qp *myQueryParams) FormatSpecifiers() []string {
+func (qp *myQueryVars) FormatSpecifiers() []string {
 	return []string{"%s"}
 }
 
-func (qp *myQueryParams) FormatArgs() []any {
+func (qp *myQueryVars) FormatArgs() []any {
 	return []any{qp.abc}
 }

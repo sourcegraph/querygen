@@ -48,7 +48,7 @@ will satisfy the `QueryParam` interface in the matching library version.
   optionally followed by  `_` or numbers.
 - The constant must have one or more instances of interpolation syntax.
 
-The generated type name will be `queryVarName + "Params"`.
+The generated type name will be `queryVarName + "Vars"`.
 
 ### File naming
 

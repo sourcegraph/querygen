@@ -50,25 +50,25 @@ import (
 	"github.com/sourcegraph/querygen/lib/interpolate"
 )
 
-type partyAttendeesQueryParams struct {
+type partyAttendeesQueryVars struct {
 	partyId int
 }
 
-var _ interpolate.QueryParams = &partyAttendeesQueryParams{}
+var _ interpolate.QueryVars = &partyAttendeesQueryVars{}
 
 // methods omitted...
 
-type bestChoiceCakeQueryParams struct {
+type bestChoiceCakeQueryVars struct {
 	partyId          int
 	excludedCakeType string
 }
 
-var _ interpolate.QueryParams = &bestChoiceCakeQueryParams{}
+var _ interpolate.QueryVars = &bestChoiceCakeQueryVars{}
 
 // methods omitted...
 ```
 
-You can use these structs with `interpolate.Do(myQuery, &myQueryParams{...})` function
+You can use these structs with `interpolate.Do(myQuery, &myQueryVars{...})` function
 to generate a [`*sqlf.Query`](https://sourcegraph.com/search?q=context:global+repo:%5Egithub%5C.com/keegancsmith/sqlf%24%40master+file:sqlf.go+type:symbol+Query&patternType=keyword&sm=0)
 which can then be executed. The `interpolate.Do` function replaces the `sqlf.Sprintf`
 function.

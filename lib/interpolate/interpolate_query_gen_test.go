@@ -2,46 +2,46 @@
 // You may only edit import statements.
 package interpolate
 
-type myArgsQueryParams struct {
+type myArgsQueryVars struct {
 	TableName string
 	WantId    int
 }
 
-var _ QueryParams = &myArgsQueryParams{}
+var _ QueryVars = &myArgsQueryVars{}
 
-func (qp *myArgsQueryParams) FormatSpecifiers() []string {
+func (qp *myArgsQueryVars) FormatSpecifiers() []string {
 	return []string{"%s", "%d"}
 }
 
-func (qp *myArgsQueryParams) FormatArgs() []any {
+func (qp *myArgsQueryVars) FormatArgs() []any {
 	return []any{qp.TableName, qp.WantId}
 }
 
-type partyAttendeesQueryParams struct {
+type partyAttendeesQueryVars struct {
 	partyId int
 }
 
-var _ QueryParams = &partyAttendeesQueryParams{}
+var _ QueryVars = &partyAttendeesQueryVars{}
 
-func (qp *partyAttendeesQueryParams) FormatSpecifiers() []string {
+func (qp *partyAttendeesQueryVars) FormatSpecifiers() []string {
 	return []string{"%d"}
 }
 
-func (qp *partyAttendeesQueryParams) FormatArgs() []any {
+func (qp *partyAttendeesQueryVars) FormatArgs() []any {
 	return []any{qp.partyId}
 }
 
-type bestChoiceCakeQueryParams struct {
+type bestChoiceCakeQueryVars struct {
 	partyId          int
 	excludedCakeType string
 }
 
-var _ QueryParams = &bestChoiceCakeQueryParams{}
+var _ QueryVars = &bestChoiceCakeQueryVars{}
 
-func (qp *bestChoiceCakeQueryParams) FormatSpecifiers() []string {
+func (qp *bestChoiceCakeQueryVars) FormatSpecifiers() []string {
 	return []string{"%d", "%s"}
 }
 
-func (qp *bestChoiceCakeQueryParams) FormatArgs() []any {
+func (qp *bestChoiceCakeQueryVars) FormatArgs() []any {
 	return []any{qp.partyId, qp.excludedCakeType}
 }

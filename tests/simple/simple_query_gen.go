@@ -6,16 +6,16 @@ import (
 	"github.com/sourcegraph/querygen/lib/interpolate"
 )
 
-type selectAllQueryParams struct {
+type selectAllQueryVars struct {
 	tableName string
 }
 
-var _ interpolate.QueryParams = &selectAllQueryParams{}
+var _ interpolate.QueryVars = &selectAllQueryVars{}
 
-func (qp *selectAllQueryParams) FormatSpecifiers() []string {
+func (qp *selectAllQueryVars) FormatSpecifiers() []string {
 	return []string{"%s"}
 }
 
-func (qp *selectAllQueryParams) FormatArgs() []any {
+func (qp *selectAllQueryVars) FormatArgs() []any {
 	return []any{qp.tableName}
 }
