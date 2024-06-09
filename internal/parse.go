@@ -11,7 +11,6 @@ import (
 //
 //	{{ fieldName : typeName }}
 //	{{ fieldName : _ }} // allowed for 2nd, 3rd etc. interpolation of same field
-//	{{ fieldName : typeName : formatSpec }} where formatSpec may be %v or similar
 //
 // formatSpec must not contain positional arguments (i.e. %[0]f is not OK)
 var SubstitutionRegex *regexp.Regexp = func() *regexp.Regexp {
@@ -25,21 +24,19 @@ var SubstitutionRegex *regexp.Regexp = func() *regexp.Regexp {
 // GoStructFieldBuilder maps N-1 to GoStructField, as the same field
 // may be interpolated multiple times in the same query.
 type GoStructFieldBuilder struct {
-	Name                    string
-	TypeName                string
-	ExplicitFormatSpecifier string
-	Index                   int
+	Name     string
+	TypeName string
+	Index    int
 }
 
 func NewFieldBuilder(matchIndex int, matches []string) GoStructFieldBuilder {
-	if len(matches) < 6 {
-		panic("expected field name at index 1, type name at index 2, and optional format specifier at index 5")
+	if len(matches) < 3 {
+		panic("expected field name at index 1, type name at index 2")
 	}
 	return GoStructFieldBuilder{
-		Name:                    matches[1],
-		TypeName:                matches[2],
-		ExplicitFormatSpecifier: matches[5],
-		Index:                   matchIndex,
+		Name:     matches[1],
+		TypeName: matches[2],
+		Index:    matchIndex,
 	}
 }
 

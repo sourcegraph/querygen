@@ -9,10 +9,6 @@ type myArgsQueryVars struct {
 
 var _ QueryVars = &myArgsQueryVars{}
 
-func (qp *myArgsQueryVars) FormatSpecifiers() []string {
-	return []string{"%s", "%d"}
-}
-
 func (qp *myArgsQueryVars) FormatArgs() []any {
 	return []any{qp.TableName, qp.WantId}
 }
@@ -22,10 +18,6 @@ type partyAttendeesQueryVars struct {
 }
 
 var _ QueryVars = &partyAttendeesQueryVars{}
-
-func (qp *partyAttendeesQueryVars) FormatSpecifiers() []string {
-	return []string{"%d"}
-}
 
 func (qp *partyAttendeesQueryVars) FormatArgs() []any {
 	return []any{qp.partyId}
@@ -37,10 +29,6 @@ type bestChoiceCakeQueryVars struct {
 }
 
 var _ QueryVars = &bestChoiceCakeQueryVars{}
-
-func (qp *bestChoiceCakeQueryVars) FormatSpecifiers() []string {
-	return []string{"%d", "%s"}
-}
 
 func (qp *bestChoiceCakeQueryVars) FormatArgs() []any {
 	return []any{qp.partyId, qp.excludedCakeType}

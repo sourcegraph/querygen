@@ -38,17 +38,15 @@ func TestSubstitutionRegex(t *testing.T) {
 			},
 		})},
 		{
-			input: `SELECT * from T WHERE X = {{x: *int: %s}} AND Y = {{uploadedParts: any: %s}}`, builders: autogold.Expect([]GoStructFieldBuilder{
+			input: `SELECT * from T WHERE X = {{x: *int: %s}} AND Y = {{uploadedParts: any}}`, builders: autogold.Expect([]GoStructFieldBuilder{
 				{
-					Name:                    "x",
-					TypeName:                "*int",
-					ExplicitFormatSpecifier: "%s",
+					Name:     "x",
+					TypeName: "*int",
 				},
 				{
-					Name:                    "uploadedParts",
-					TypeName:                "any",
-					ExplicitFormatSpecifier: "%s",
-					Index:                   1,
+					Name:     "uploadedParts",
+					TypeName: "any",
+					Index:    1,
 				},
 			}),
 		},
