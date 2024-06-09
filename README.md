@@ -85,15 +85,19 @@ for constructing SQL queries. `querygen` sits on top of `sqlf` to enable:
 
 without having to switch to an alternate SQL driver.
 
-| Tool/Library                      |    `sqlf`    |  `querygen`   |  `pgx`   |    `sqlc`     |
-|-----------------------------------|:------------:|:-------------:|:--------:|:-------------:|
-| Operation                         |   Run-time   | ~Compile-time | Run-time | ~Compile-time |
-| Named parameters in query syntax  |      ❌       |       ✅       |    ✅     |       ✅       |
-| Static parameter name checking    |      ❌       |       ✅       |    ❌     |       ✅       | 
-| Static binding var count checking |      ❌       |       ✅       |    ❌     |       ✅       |
-| Arbitrary dynamic query fragments |      ✅       |       ✅       |    ✅     |       ❌       |
-| Static query validation           |      ❌       |       ❌       |    ❌     |       ✅       |
-| Statically checked row scanning   |      ❌       |       ❌       |    ❌     |       ✅       |
+| Tool/Library                          |    `sqlf`    |  `querygen`   |  `pgx`   |    `sqlc`     |
+|---------------------------------------|:------------:|:-------------:|:--------:|:-------------:|
+| Operation                             |   Run-time   | ~Compile-time | Run-time | ~Compile-time |
+| Named parameters in query syntax      |      ❌       |       ✅       |    ✅     |       ✅       |
+| Static parameter name checking        |      ❌       |       ✅       |    ❌     |       ✅       | 
+| Static binding var count checking (†) |      ❌       |       ✅       |    ❌     |       ✅       |
+| Arbitrary dynamic query fragments     |      ✅       |       ✅       |    ✅     |       ❌       |
+| Static query validation               |      ❌       |       ❌       |    ❌     |       ✅       |
+| Statically checked row scanning       |      ❌       |       ❌       |    ❌     |       ✅       |
+
+(†) Caveat: Static binding var count checking requires using
+the [exhaustruct](https://golangci-lint.run/usage/linters/#exhaustruct)
+linter or similar for the types generated for query variables.
 
 We could probably use `sqlc` for common cases,
 but the Sourcegraph codebase has some [complex dynamically assembled queries](https://sourcegraph.com/github.com/sourcegraph/sourcegraph@d288874197bed9c219c20a01cd7786e1d2aa6e11/-/blob/internal/batches/store/batch_changes.go?L612-697)
