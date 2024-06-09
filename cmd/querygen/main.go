@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -51,7 +52,7 @@ type queryGenFileData struct {
 	wanted []internal.GoStruct
 }
 
-var globalLogLevel string = "warn"
+var globalLogLevel string = "info"
 
 func initLogger() (*log.Logger, error) {
 	level, err := log.ParseLevel(globalLogLevel)
@@ -109,6 +110,9 @@ func updateQueryGenFiles(logger *log.Logger, pkg *types.Package, fset *token.Fil
 		pkg.Path() != "github.com/sourcegraph/querygen/lib/interpolate" &&
 			pkg.Path() != "github.com/sourcegraph/querygen/lib/interpolate.test"
 
+	createdFileCount := 0
+	updatedFileCount := 0
+
 	// All the possibilities:
 	//
 	//	| a.go    | Num queries | a_query_gen.go | Action                     |
@@ -125,6 +129,8 @@ func updateQueryGenFiles(logger *log.Logger, pkg *types.Package, fset *token.Fil
 			logger.Debug("creating new file")
 			if err := fileData.createNewFile(pkg, path, shouldImportInterpolate); err != nil {
 				logger.Error("failed to write generated structs", "err", err)
+			} else {
+				createdFileCount += 1
 			}
 			continue
 		}
@@ -138,9 +144,19 @@ func updateQueryGenFiles(logger *log.Logger, pkg *types.Package, fset *token.Fil
 		}
 		// Handle the update case
 		logger.Debug("updating file")
-		if err := fileData.updateFile(fset, shouldImportInterpolate); err != nil {
+		modified, err := fileData.updateFile(fset, shouldImportInterpolate)
+		if err != nil {
 			logger.Warn("failed to update file", "err", err)
+		} else if modified {
+			updatedFileCount += 1
 		}
+	}
+
+	if createdFileCount != 0 || updatedFileCount != 0 {
+		logger.Info("querygen codegen summary",
+			"pkg", pkg.Path(),
+			"filesCreated", createdFileCount,
+			"filesUpdated", updatedFileCount)
 	}
 }
 
@@ -213,7 +229,7 @@ func (fileData *queryGenFileData) createNewFile(pkg *types.Package, path string,
 	return nil
 }
 
-func (fileData *queryGenFileData) updateFile(fset *token.FileSet, shouldImportInterpolate bool) error {
+func (fileData *queryGenFileData) updateFile(fset *token.FileSet, shouldImportInterpolate bool) (modified bool, _ error) {
 	// 1-based line number
 	pkgKeywordLine := fset.Position(fileData.astFile.Package).Line
 	lastImportStatementEndLine := -1
@@ -226,11 +242,11 @@ func (fileData *queryGenFileData) updateFile(fset *token.FileSet, shouldImportIn
 
 	fileHandle, err := os.OpenFile(fileData.file.Name(), os.O_RDWR, 0644)
 	if err != nil {
-		return errors.Wrap(err, "failed to open query gen file")
+		return false, errors.Wrap(err, "failed to open query gen file")
 	}
 	fileContents, err := io.ReadAll(fileHandle)
 	if err != nil {
-		return errors.Wrap(err, "failed to read query gen file")
+		return false, errors.Wrap(err, "failed to read query gen file")
 	}
 
 	lines := 0
@@ -245,19 +261,26 @@ func (fileData *queryGenFileData) updateFile(fset *token.FileSet, shouldImportIn
 		}
 	}
 
-	if err := fileHandle.Truncate(int64(prefixByteCount)); err != nil {
-		return errors.Wrap(err, "failed to truncate file")
-	}
-
-	if _, err := fileHandle.Seek(0, io.SeekEnd); err != nil {
-		return errors.Wrap(err, "failed to seek to end of file")
-	}
+	restOfFile := fileContents[prefixByteCount:]
 
 	var buf bytes.Buffer
 	internal.WriteStructs(fileData.wanted, &buf, shouldImportInterpolate)
 	formattedBytes, _ := format.Source(buf.Bytes())
-	if _, err := fileHandle.Write(formattedBytes); err != nil {
-		return errors.Wrap(err, "failed to write data")
+
+	if sha1.Sum(restOfFile) == sha1.Sum(formattedBytes) {
+		return false, nil
 	}
-	return nil
+
+	if err := fileHandle.Truncate(int64(prefixByteCount)); err != nil {
+		return false, errors.Wrap(err, "failed to truncate file")
+	}
+
+	if _, err := fileHandle.Seek(0, io.SeekEnd); err != nil {
+		return true, errors.Wrap(err, "failed to seek to end of file")
+	}
+
+	if _, err := fileHandle.Write(formattedBytes); err != nil {
+		return true, errors.Wrap(err, "failed to write data")
+	}
+	return true, nil
 }
